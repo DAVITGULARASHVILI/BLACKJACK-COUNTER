@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BJ Counter</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --felt: #0d3b2e;
+    --felt-light: #145a40;
+    --felt-dark: #071f18;
+    --gold: #c9a84c;
+    --gold-light: #e8c876;
+    --gold-dark: #8a6c2a;
+    --red: #c0392b;
+    --card-bg: #fdf6e3;
+    --card-shadow: rgba(0,0,0,0.5);
+    --text-on-felt: #d4c9a0;
+    --hot: #e74c3c;
+    --cold: #3498db;
+    --neutral: #95a5a6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--felt-dark);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(20,90,64,0.6) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 24px 0 20px;
+    border-bottom: 1px solid rgba(201,168,76,0.3);
+    margin-bottom: 24px;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-shadow: 0 0 30px rgba(201,168,76,0.4);
+    line-height: 1;
+  }
+
+  header p {
+    color: rgba(212,201,160,0.6);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 6px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .shuffle-warning {
+    display: none;
+    background: rgba(243,156,18,0.15);
+    border: 1px solid rgba(243,156,18,0.5);
+    border-radius: 10px;
+    padding: 10px 16px;
+    text-align: center;
+    margin-bottom: 16px;
+    animation: pulse-warn 1.2s ease-in-out infinite;
+  }
+
+  .shuffle-warning.visible { display: block; }
+
+  .shuffle-warning span {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: #f39c12;
+    text-transform: uppercase;
+  }
+
+  @keyframes pulse-warn {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* COUNTER DISPLAY */
+  .counter-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+
+  .count-display {
+    background: rgba(7,31,24,0.8);
+    border: 2px solid var(--gold-dark);
+    border-radius: 16px;
+    padding: 20px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    flex: 1;
+    max-width: 320px;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  .count-display::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .count-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: rgba(201,168,76,0.6);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .count-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 64px;
+    font-weight: 900;
+    line-height: 1;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    color: var(--neutral);
+  }
+
+  .count-value.hot { color: var(--hot); text-shadow: 0 0 20px rgba(231,76,60,0.6); }
+  .count-value.cold { color: var(--cold); text-shadow: 0 0 20px rgba(52,152,219,0.6); }
+  .count-value.neutral { color: #aaa; }
+
+  .count-value.bump {
+    animation: bump 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes bump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  .stats-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 120px;
+  }
+
+  .stat-pill {
+    background: rgba(7,31,24,0.8);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-align: center;
+  }
+
+  .stat-pill .s-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: rgba(201,168,76,0.5);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .stat-pill .s-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-on-felt);
+  }
+
+  /* ADVICE SECTION */
+  .advice-bar {
+    background: rgba(7,31,24,0.9);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  .advice-item {
+    flex: 1;
+    min-width: 130px;
+    text-align: center;
+  }
+
+  .advice-item .a-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.5);
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .advice-item .a-val {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+
+  .a-good { background: rgba(39,174,96,0.2); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+  .a-bad { background: rgba(231,76,60,0.2); color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
+  .a-neutral { background: rgba(149,165,166,0.15); color: #95a5a6; border: 1px solid rgba(149,165,166,0.2); }
+  .a-warning { background: rgba(243,156,18,0.2); color: #f39c12; border: 1px solid rgba(243,156,18,0.3); }
+
+  /* CARDS GRID */
+  .cards-section h2 {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.5);
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .suits-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .suit-label {
+    font-size: 18px;
+    opacity: 0.4;
+    width: 48px;
+    text-align: center;
+  }
+
+  .cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .card-btn {
+    width: 68px;
+    height: 96px;
+    background: var(--card-bg);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 
+      2px 3px 8px var(--card-shadow),
+      inset 0 0 0 1px rgba(0,0,0,0.08);
+    transition: transform 0.12s ease, opacity 0.2s ease, box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    overflow: hidden;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .card-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 2px 8px 16px var(--card-shadow);
+  }
+
+  .card-btn:active {
+    transform: translateY(-1px) scale(0.97);
+  }
+
+  .card-btn.red { color: var(--red); }
+  .card-btn.black { color: #1a1a1a; }
+
+  .card-value {
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 900;
+  }
+
+  .card-suit {
+    font-size: 20px;
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  .card-corner {
+    position: absolute;
+    top: 4px;
+    left: 6px;
+    font-size: 11px;
+    line-height: 1.1;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    opacity: 0.7;
+  }
+
+  .card-count-badge {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    background: rgba(0,0,0,0.12);
+    border-radius: 4px;
+    padding: 1px 4px;
+    color: inherit;
+    opacity: 0.6;
+  }
+
+  .card-hi-lo {
+    position: absolute;
+    bottom: 4px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    opacity: 0.5;
+  }
+
+  .card-btn.played {
+    opacity: 0.35;
+    transform: none !important;
+    box-shadow: 1px 2px 4px var(--card-shadow);
+    filter: grayscale(0.3);
+  }
+
+  .card-btn.played::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.15);
+    border-radius: 8px;
+  }
+
+  /* PLAYED COUNT OVERLAY */
+  .card-played-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  .card-btn.played .card-played-overlay {
+    display: flex;
+  }
+
+  .played-x {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    color: white;
+    opacity: 0.8;
+    line-height: 1;
+  }
+
+  /* ACTIONS */
+  .actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    color: var(--felt-dark);
+    box-shadow: 0 2px 12px rgba(201,168,76,0.3);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(201,168,76,0.4);
+  }
+
+  .btn-danger {
+    background: rgba(192,57,43,0.2);
+    color: #e74c3c;
+    border: 1px solid rgba(192,57,43,0.4);
+  }
+
+  .btn-danger:hover {
+    background: rgba(192,57,43,0.35);
+    transform: translateY(-1px);
+  }
+
+  /* HISTORY */
+  .history-section {
+    margin-top: 24px;
+    background: rgba(7,31,24,0.6);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .history-section h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.4);
+    margin-bottom: 10px;
+  }
+
+  .history-log {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 60px;
+    overflow-y: auto;
+  }
+
+  .history-item {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-on-felt);
+    opacity: 0.7;
+  }
+
+  .history-item.plus { color: var(--cold); }
+  .history-item.minus { color: var(--hot); }
+  .history-item.zero { color: var(--neutral); }
+
+  /* DIVIDER */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,168,76,0.2), transparent);
+    margin: 20px 0;
+  }
+
+  /* DECK TYPE SELECTOR */
+  .deck-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .deck-selector label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.5);
+  }
+
+  .deck-selector select {
+    background: rgba(7,31,24,0.9);
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--text-on-felt);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23c9a84c60'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+
+  /* TRUE COUNT */
+  .true-count-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .true-count-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.4);
+  }
+
+  .true-count-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  /* FLASH ANIMATION */
+  @keyframes flash-green {
+    0% { background: rgba(46,204,113,0.3); }
+    100% { background: transparent; }
+  }
+
+  @keyframes flash-red {
+    0% { background: rgba(231,76,60,0.3); }
+    100% { background: transparent; }
+  }
+
+  .flash-green { animation: flash-green 0.4s ease-out; }
+  .flash-red { animation: flash-red 0.4s ease-out; }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    .card-btn { width: 58px; height: 84px; }
+    .card-value { font-size: 19px; }
+    .card-suit { font-size: 17px; }
+    .count-value { font-size: 52px; }
+    .advice-bar { gap: 8px; }
+    .advice-item { min-width: 100px; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>♠ Card Counter ♠</h1>
+    <p>Hi-Lo System · Evolution Gaming · 8 Deck Calibrated</p>
+  </header>
+
+  <!-- COUNTER + STATS -->
+  <div class="counter-section">
+    <div class="stats-mini" id="statsLeft">
+      <div class="stat-pill">
+        <span class="s-label">Played</span>
+        <span class="s-val" id="playedCount">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="s-label">Remaining</span>
+        <span class="s-val" id="remainCount">—</span>
+      </div>
+    </div>
+
+    <div class="count-display" id="countDisplay">
+      <div class="count-label">Running Count</div>
+      <div class="count-value neutral" id="countValue">0</div>
+      <div class="true-count-section">
+        <span class="true-count-label">True Count</span>
+        <span class="true-count-val" id="trueCount">—</span>
+      </div>
+    </div>
+
+    <div class="stats-mini" id="statsRight">
+      <div class="stat-pill">
+        <span class="s-label">Decks Left</span>
+        <span class="s-val" id="decksLeft">—</span>
+      </div>
+      <div class="stat-pill">
+        <span class="s-label">Pen%</span>
+        <span class="s-val" id="penetration">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHUFFLE WARNING -->
+  <div class="shuffle-warning" id="shuffleWarning">
+    <span>⚠️ ~50% Penetration — Shuffle მოახლოვდა · Count Reset-ის მოლოდინში</span>
+  </div>
+
+  <!-- ADVICE BAR -->
+  <div class="advice-bar" id="adviceBar">
+    <div class="advice-item">
+      <span class="a-label">🃏 Action</span>
+      <span class="a-val a-neutral" id="adviceHit">—</span>
+    </div>
+    <div class="advice-item">
+      <span class="a-label">🛡 Insurance</span>
+      <span class="a-val a-neutral" id="adviceIns">—</span>
+    </div>
+    <div class="advice-item">
+      <span class="a-label">✌️ Split</span>
+      <span class="a-val a-neutral" id="adviceSplit">—</span>
+    </div>
+    <div class="advice-item">
+      <span class="a-label">×2 Double</span>
+      <span class="a-val a-neutral" id="adviceDouble">—</span>
+    </div>
+    <div class="advice-item">
+      <span class="a-label">🎰 Side Bet</span>
+      <span class="a-val a-neutral" id="adviceSide">—</span>
+    </div>
+  </div>
+
+  <!-- DECK SELECTOR -->
+  <div class="deck-selector">
+    <label>Deck Count:</label>
+    <select id="deckSelect" onchange="changeDeck()">
+      <option value="1">1 Deck</option>
+      <option value="2">2 Decks</option>
+      <option value="4">4 Decks</option>
+      <option value="6">6 Decks</option>
+      <option value="8" selected>8 Decks ★ Evolution</option>
+    </select>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- CARDS GRID -->
+  <div class="cards-section">
+    <h2>— Tap played cards —</h2>
+    <div class="cards-grid" id="cardsGrid"></div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="btn btn-primary" onclick="undoLast()">↩ Undo</button>
+    <button class="btn btn-danger" onclick="resetCount()">⟳ Reset Count</button>
+    <button class="btn btn-danger" onclick="newShoe()">🃏 New Shoe</button>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="history-section">
+    <h3>Card History</h3>
+    <div class="history-log" id="historyLog"></div>
+  </div>
+
+</div>
+
+<script>
+// Hi-Lo values
+const HI_LO = {
+  '2': 1, '3': 1, '4': 1, '5': 1, '6': 1,
+  '7': 0, '8': 0, '9': 0,
+  '10': -1, 'J': -1, 'Q': -1, 'K': -1, 'A': -1
+};
+
+const CARD_SUITS = ['♥', '♦', '♠', '♣'];
+const CARD_REDS = ['♥', '♦'];
+const CARD_VALUES = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+let runningCount = 0;
+let playedCards = {};    // value -> count played
+let totalPlayed = 0;
+let deckCount = 8;  // Evolution Gaming standard
+let history = [];        // [{value, delta}]
+
+// Evolution Gaming: 8 decks, ~50% penetration = shuffle around card 208
+const EVOLUTION_SHUFFLE_PCT = 0.50;
+
+// Initialize played counts
+CARD_VALUES.forEach(v => playedCards[v] = 0);
+
+function totalCardsInShoe() {
+  return deckCount * 52;
+}
+
+function totalPerValue(v) {
+  // 10, J, Q, K each appear 4 times per deck
+  if (['10','J','Q','K'].includes(v)) return deckCount * 4;
+  return deckCount * 4;
+}
+
+function remainingInShoe() {
+  return totalCardsInShoe() - totalPlayed;
+}
+
+function decksRemaining() {
+  return remainingInShoe() / 52;
+}
+
+function trueCount() {
+  const dr = decksRemaining();
+  if (dr < 0.5) return null;
+  return (runningCount / dr).toFixed(1);
+}
+
+function buildCards() {
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = '';
+
+  CARD_VALUES.forEach(val => {
+    const played = playedCards[val];
+    const total = totalPerValue(val);
+    const delta = HI_LO[val];
+    const isRed = true; // we'll do suit-based display differently
+
+    const btn = document.createElement('button');
+    btn.className = 'card-btn black';
+    btn.id = 'card-' + val;
+    btn.onclick = () => cardTapped(val);
+
+    // Color based on value (red for hearts/diamonds style)
+    const redVals = ['2','3','A'];
+    btn.className = `card-btn ${['A','3'].includes(val) ? 'red' : (['5','7','9'].includes(val) ? 'red' : 'black')}`;
+    // Actually use standard: just alternate nicely
+    btn.className = `card-btn ${['2','3','6','7','A'].includes(val) ? 'red' : 'black'}`;
+
+    const hiLoText = delta > 0 ? '+1' : delta < 0 ? '-1' : '0';
+    const hiLoColor = delta > 0 ? '#3498db' : delta < 0 ? '#e74c3c' : '#95a5a6';
+
+    btn.innerHTML = `
+      <div class="card-corner">${val}</div>
+      <div class="card-count-badge">${played}/${total}</div>
+      <div class="card-value">${val}</div>
+      <div class="card-suit">${CARD_SUITS[Math.floor(Math.random() * 4)]}</div>
+      <div class="card-hi-lo" style="color:${hiLoColor}">${hiLoText}</div>
+      <div class="card-played-overlay"><span class="played-x">✓</span></div>
+    `;
+
+    updateCardState(btn, val);
+    grid.appendChild(btn);
+  });
+}
+
+function updateCardState(btn, val) {
+  const played = playedCards[val];
+  const total = totalPerValue(val);
+  btn.querySelector('.card-count-badge').textContent = `${played}/${total}`;
+  if (played >= total) {
+    btn.classList.add('played');
+  } else {
+    btn.classList.remove('played');
+  }
+}
+
+function cardTapped(val) {
+  const total = totalPerValue(val);
+  if (playedCards[val] >= total) return;
+
+  const delta = HI_LO[val];
+  runningCount += delta;
+  playedCards[val]++;
+  totalPlayed++;
+  history.push({ value: val, delta: delta });
+
+  const btn = document.getElementById('card-' + val);
+  updateCardState(btn, val);
+
+  // Flash display
+  const display = document.getElementById('countDisplay');
+  display.classList.remove('flash-green', 'flash-red');
+  void display.offsetWidth;
+  if (delta > 0) display.classList.add('flash-green');
+  else if (delta < 0) display.classList.add('flash-red');
+
+  updateDisplay();
+  addHistory(val, delta);
+}
+
+function updateDisplay() {
+  // Running count
+  const cv = document.getElementById('countValue');
+  cv.classList.remove('bump', 'hot', 'cold', 'neutral');
+  void cv.offsetWidth;
+
+  cv.textContent = runningCount > 0 ? `+${runningCount}` : runningCount;
+
+  if (runningCount > 0) cv.classList.add('hot', 'bump');
+  else if (runningCount < 0) cv.classList.add('cold', 'bump');
+  else { cv.classList.add('neutral', 'bump'); }
+
+  // Stats
+  document.getElementById('playedCount').textContent = totalPlayed;
+  document.getElementById('remainCount').textContent = remainingInShoe();
+
+  const dr = decksRemaining();
+  document.getElementById('decksLeft').textContent = dr.toFixed(1);
+  const penPct = Math.round((totalPlayed / totalCardsInShoe()) * 100);
+  document.getElementById('penetration').textContent = penPct + '%';
+
+  const tc = trueCount();
+  const tcEl = document.getElementById('trueCount');
+  if (tc !== null) {
+    const tcNum = parseFloat(tc);
+    tcEl.textContent = tcNum > 0 ? `+${tc}` : tc;
+    tcEl.style.color = tcNum >= 2 ? '#e74c3c' : tcNum <= -2 ? '#3498db' : '#c9a84c';
+  } else {
+    tcEl.textContent = '∞';
+  }
+
+  updateAdvice();
+
+  // Evolution shuffle warning: show when >= 45% played (shuffle zone)
+  const pen = totalPlayed / totalCardsInShoe();
+  const warnEl = document.getElementById('shuffleWarning');
+  if (pen >= 0.45) {
+    warnEl.classList.add('visible');
+  } else {
+    warnEl.classList.remove('visible');
+  }
+}
+
+function updateAdvice() {
+  const tc = trueCount() !== null ? parseFloat(trueCount()) : 0;
+  const rc = runningCount;
+
+  // HIT / STAY / STAND
+  const hitEl = document.getElementById('adviceHit');
+  if (tc >= 3) { hitEl.textContent = 'Bet MAX'; hitEl.className = 'a-val a-good'; }
+  else if (tc >= 1) { hitEl.textContent = 'Bet More'; hitEl.className = 'a-val a-good'; }
+  else if (tc >= -1) { hitEl.textContent = 'Base Bet'; hitEl.className = 'a-val a-neutral'; }
+  else if (tc >= -3) { hitEl.textContent = 'Bet Less'; hitEl.className = 'a-val a-warning'; }
+  else { hitEl.textContent = 'Min Bet'; hitEl.className = 'a-val a-bad'; }
+
+  // INSURANCE (profitable when tc >= +3)
+  const insEl = document.getElementById('adviceIns');
+  if (tc >= 3) { insEl.textContent = '✅ YES'; insEl.className = 'a-val a-good'; }
+  else { insEl.textContent = '❌ NO'; insEl.className = 'a-val a-bad'; }
+
+  // SPLIT (good when high count — more 10s remaining)
+  const splitEl = document.getElementById('adviceSplit');
+  if (tc >= 2) { splitEl.textContent = 'Split Aces/8s'; splitEl.className = 'a-val a-good'; }
+  else if (tc >= 0) { splitEl.textContent = 'Standard'; splitEl.className = 'a-val a-neutral'; }
+  else { splitEl.textContent = 'Avoid Splits'; splitEl.className = 'a-val a-warning'; }
+
+  // DOUBLE (good with high count)
+  const dblEl = document.getElementById('adviceDouble');
+  if (tc >= 2) { dblEl.textContent = '✅ YES'; dblEl.className = 'a-val a-good'; }
+  else if (tc >= 0) { dblEl.textContent = '9/10/11 Only'; dblEl.className = 'a-val a-neutral'; }
+  else { dblEl.textContent = '❌ Avoid'; dblEl.className = 'a-val a-bad'; }
+
+  // SIDE BET (21+3, Perfect Pairs) — good at very high counts
+  const sideEl = document.getElementById('adviceSide');
+  if (tc >= 4) { sideEl.textContent = '🔥 HOT'; sideEl.className = 'a-val a-good'; }
+  else if (tc >= 2) { sideEl.textContent = 'Maybe'; sideEl.className = 'a-val a-warning'; }
+  else { sideEl.textContent = '❌ Skip'; sideEl.className = 'a-val a-bad'; }
+}
+
+function addHistory(val, delta) {
+  const log = document.getElementById('historyLog');
+  const item = document.createElement('span');
+  item.className = `history-item ${delta > 0 ? 'plus' : delta < 0 ? 'minus' : 'zero'}`;
+  const sign = delta > 0 ? '+' : delta < 0 ? '−' : '0';
+  item.textContent = `${val}(${sign})`;
+  log.appendChild(item);
+  log.scrollLeft = log.scrollWidth;
+}
+
+function undoLast() {
+  if (history.length === 0) return;
+  const last = history.pop();
+  runningCount -= last.delta;
+  playedCards[last.value]--;
+  totalPlayed--;
+
+  const btn = document.getElementById('card-' + last.value);
+  updateCardState(btn, last.value);
+
+  // Remove last history item
+  const log = document.getElementById('historyLog');
+  if (log.lastChild) log.removeChild(log.lastChild);
+
+  updateDisplay();
+}
+
+function resetCount() {
+  runningCount = 0;
+  totalPlayed = 0;
+  CARD_VALUES.forEach(v => playedCards[v] = 0);
+  history = [];
+  document.getElementById('historyLog').innerHTML = '';
+  buildCards();
+  updateDisplay();
+}
+
+function newShoe() {
+  resetCount();
+}
+
+function changeDeck() {
+  deckCount = parseInt(document.getElementById('deckSelect').value);
+  resetCount();
+}
+
+// Init
+buildCards();
+updateDisplay();
+</script>
+</body>
+</html>
